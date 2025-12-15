@@ -9,7 +9,7 @@
       <div class="time-filter">
         <TimeFilter v-model="form.time_range" label="Time Interval" />
       </div>
-      <button @click="resetPage(); fetchData()">查詢</button>
+      <button @click="resetPage(); fetchData()" class="query-button">查詢</button>
     </div>
 
     <div v-if="loading">Loading...</div>
@@ -19,28 +19,28 @@
     <table v-if="data.length">
       <thead>
         <tr>
-          <th>Server</th>
-          <th>DB</th>
-          <th>SP Name</th>
-          <th>Exec_Count</th>
-          <th>Exec_Second(Avg)</th>
-          <th>Exec_Error</th>
-          <th>NO_INDEX_USED</th>
-          <th>NO_GOOD_INDEX_USED</th>
-          <th>CreateTime</th>
+          <th @click="sortBy('Server')" class="sortable">Server {{ getSortIcon('Server') }}</th>
+          <th @click="sortBy('DB')" class="sortable">DB {{ getSortIcon('DB') }}</th>
+          <th @click="sortBy('SP_Name')" class="sortable">SP Name {{ getSortIcon('SP_Name') }}</th>
+          <th @click="sortBy('Exec_Count')" class="sortable">Exec_Count {{ getSortIcon('Exec_Count') }}</th>
+          <th @click="sortBy('Exec_Second')" class="sortable">Exec_Second (Avg) {{ getSortIcon('Exec_Second') }}</th>
+          <th @click="sortBy('Exec_Error')" class="sortable">Exec_Error {{ getSortIcon('Exec_Error') }}</th>
+          <th @click="sortBy('Exec_NO_INDEX_USED')" class="sortable">NO_INDEX_USED {{ getSortIcon('Exec_NO_INDEX_USED') }}</th>
+          <th @click="sortBy('Exec_NO_GOOD_INDEX_USED')" class="sortable">NO_GOOD_INDEX_USED {{ getSortIcon('Exec_NO_GOOD_INDEX_USED') }}</th>
+          <th @click="sortBy('CreateTime')" class="sortable">CreateTime (UTC+0) {{ getSortIcon('CreateTime') }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(item,i) in data" :key="i">
-          <td>{{ item.Server }}</td>
-          <td>{{ item.DB }}</td>
-          <td>{{ item.SP_Name }}</td>
-          <td>{{ item.Exec_Count }}</td>
-          <td>{{ item.Exec_Second }}</td>
-          <td>{{ item.Exec_Error }}</td>
-          <td>{{ item.Exec_NO_INDEX_USED }}</td>
-          <td>{{ item.Exec_NO_GOOD_INDEX_USED }}</td>
-          <td>{{ item.CreateTime }}</td>
+          <td :title="item.Server">{{ item.Server }}</td>
+          <td :title="item.DB">{{ item.DB }}</td>
+          <td :title="item.SP_Name">{{ item.SP_Name }}</td>
+          <td :title="item.Exec_Count">{{ item.Exec_Count }}</td>
+          <td :title="item.Exec_Second">{{ item.Exec_Second }}</td>
+          <td :title="item.Exec_Error">{{ item.Exec_Error }}</td>
+          <td :title="item.Exec_NO_INDEX_USED">{{ item.Exec_NO_INDEX_USED }}</td>
+          <td :title="item.Exec_NO_GOOD_INDEX_USED">{{ item.Exec_NO_GOOD_INDEX_USED }}</td>
+          <td :title="item.CreateTime">{{ item.CreateTime }}</td>
         </tr>
       </tbody>
       <tfoot>
@@ -92,6 +92,10 @@ export default {
       data: [],
       loading: false,
       error: '',
+      sort: {
+          field: 'CreateTime',
+	  direction: 'DESC'
+      },
       totalExecCount: 0,
       totalExecSecond: 0,
       totalExecError: 0,
@@ -164,6 +168,25 @@ export default {
             this.fetchData()
         }
     },
+    sortBy(field) {
+	if (this.sort.field === field) {
+	    this.sort.direction = this.sort.direction === 'ASC' ? 'DESC' : 'ASC'
+        } else {
+	    this.sort.field = field
+            this.sort.direction = 'DESC'
+	}
+	this.resetPage()
+	this.fetchData()
+    },
+    getSortIcon(field) {
+	const icon = ' ▼';
+	
+        if (this.sort.field === field) {
+            return this.sort.direction === 'ASC' ? ' ▲' : ' ▼';
+	} else {
+	    return icon;
+	}
+    },
     onTimeChange(newTimeRange) {
         this.resetPage()
     },
@@ -178,7 +201,9 @@ export default {
         start_time: this.form.time_range.start_time,
         end_time: this.form.time_range.end_time,
 	page: this.pagination.current_page,
-	per_page: this.pagination.per_page
+	per_page: this.pagination.per_page,
+	sort_by: this.sort.field,
+	sort_dir: this.sort.direction
       }
 
       try {
@@ -235,6 +260,7 @@ h1 {
 
 .filters {
   display: grid;
+  flex-direction: row;
   grid-template-columns: repeat(4, 1fr);
   flex-basis: 100%;
   gap: 30px;
@@ -242,6 +268,7 @@ h1 {
 }
 
 .time-filter {
+  flex-direction: column;
   flex-basis: 100%;
   gap: 30px;
   grid-column: span 3;
@@ -251,12 +278,12 @@ h1 {
 }
 
 .filters button {
-  grid-column: 4 / 5;
-  padding: 4px 4px;
+  grid-column: 4 / 4;
+  padding: 3px 4px;
   background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
   max-width: 100px; /* 限制最大寬度，避免過長 */
@@ -280,12 +307,42 @@ table {
   table-layout: auto;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  table-layout: fixed;
+}
+
+table thead th:nth-child(1) {
+  width: 6%; /* Server */
+}
+table thead th:nth-child(2) {
+  width: 5%; /* DB */
+}
+table thead th:nth-child(3) {
+  width: 23%; /* SP Name */
+}
+table thead th:nth-child(4) {
+  width: 8%; /* Exec_Count */
+}
+table thead th:nth-child(5) {
+  width: 12%; /* Exec_Second(Avg) */
+}
+table thead th:nth-child(6) {
+  width: 8%; /* Exec_Error */
+}
+table thead th:nth-child(7) {
+  width: 10%; /* NO_INDEX_USED */
+}
+table thead th:nth-child(8) {
+  width: 10%; /* NO_GOOD_INDEX_USED */
+}
+table thead th:nth-child(9) {
+  width: 17%; /* CreateTime */
 }
 
 table th, table td {
   padding: 3px 4px;
   text-align: left;
   border: 1px solid #cceeff;
+  white-space: nowrap;
   overflow: hidden; /* 超過的內容隱藏 */
   text-overflow: ellipsis; /* 超過的文字顯示省略號 */
 }
@@ -294,6 +351,16 @@ table th {
   background-color: #007bff;
   color: #f8f9fa;
   font-weight: bold;
+}
+
+table th.sortable {
+    cursor: pointer;
+    user-select: none; 
+    white-space: nowrap;
+}
+
+table th.sortable span {
+    font-weight: bold;
 }
 
 table tr:nth-child(even) {
@@ -329,4 +396,5 @@ table td {
   color: #e74c3c;
   font-weight: bold;
 }
+
 </style>

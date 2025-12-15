@@ -47,11 +47,11 @@ export default {
 .app-layout { 
   display: flex;
   height: 100vh;
-  width: 90vw;
+  width: 98vw;
   padding: 0;
   box-sizing: border-box;
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .sidebar {
@@ -60,7 +60,7 @@ export default {
   color: white;
   transition: width 0.3s;
   overflow: hidden;
-  margin-left: 80px;
+  margin-left: 0;
 }
 
 .sidebar.collapsed { width: 60px; }
@@ -93,6 +93,7 @@ export default {
   padding: 15px;
   background: #f5f7fa; 
   overflow-y: auto; 
+  color: #333;
 }
 </style>
 
