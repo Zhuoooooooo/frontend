@@ -1,0 +1,210 @@
+<template>
+  <div id="app" class="container">
+    <h1> Monitor System</h1>
+    <SpFilter @search="fetchData" />
+    <div v-if="error" class="error">{{ error }}</div>
+    <div v-if="loading" class="loading">Loading...</div>
+    <table v-if="data.length" class="result-table">
+      <thead>
+        <tr>
+          <th>Server</th>
+          <th>DB</th>
+          <th>SP Name</th>
+          <th>Exec_Count</th>
+          <th>Exec_Second</th>
+          <th>Exec_Error</th>
+          <th>NO_INDEX_USED</th>
+          <th>NO_GOOD_INDEX_USED</th>
+          <th>CreateTime</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(item, i) in data" :key="i">
+          <td>{{ item.Server }}</td>
+          <td>{{ item?.DB }}</td>
+          <td>{{ item?.SP_Name }}</td>
+          <td>{{ item?.Exec_Count }}</td>
+          <td>{{ item?.Exec_Second }}</td>
+          <td>{{ item?.Exec_Error }}</td>
+          <td>{{ item?.Exec_NO_INDEX_USED }}</td>
+          <td>{{ item?.Exec_NO_GOOD_INDEX_USED }}</td>
+          <td>{{ item?.CreateTime }}</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+           <td colspan="3"><strong>Total</strong></td>
+           <td><strong>{{ totalExecCount }}</strong></td>
+           <td><strong>{{ RoundToDecimal(totalExecSecond, 5) }}</strong></td>
+           <td><strong>{{ totalExecError }}</strong></td>
+           <td><strong>{{ totalNoIndexUsed }}</strong></td>
+           <td><strong>{{ totalNoGoodIndexUsed }}</strong></td>
+           <td></td>
+       </tr>
+     </tfoot>
+
+    </table>
+
+    <!-- total count -->
+    <!--div v-else-if="!loading && data.length > 0" class="total-summary">
+      <div><strong>Total Count</strong></div>
+      <div><strong>Total Exec_Count: {{ totalExecCount }}</strong></div>
+      <div><strong>Total Exec_Second: {{ totalExecSecond }}</strong></div>
+      <div><strong>Total Exec_Error: {{ totalExecError }}</strong></div>
+      <div><strong>Total NO_INDEX_USED: {{ totalNoIndexUsed }}</strong></div>
+      <div><strong>Total NO_GOOD_INDEX_USED: {{ totalNoGoodIndexUsed }}</strong></div>
+    </div -->
+
+    <div v-else-if="!loading">No Data</div>
+  </div>
+</template>
+
+<script>
+import axios from 'axios'
+import SpFilter from './components/SpFilter.vue'
+
+export default {
+  name: 'App',
+  components: {
+    SpFilter
+  },
+  data() {
+    return {
+      form: {
+        server: '',
+        db: '',
+        sp_name: '',
+        start_time: '',
+        end_time: '',
+      },
+      data: [],
+      loading: false,
+      error: '',
+      totalExecCount: 0,
+      totalExecSecond: 0,
+      totalExecError: 0,
+      totalNoIndexUsed: 0,
+      totalNoGoodIndexUsed: 0,
+    }
+  },
+  methods: {
+    async fetchData(payload = {}) {
+      this.error = ''
+      this.loading = true
+      this.data = []
+
+      this.totalExecCount = 0
+      this.totalExecSecond = 0
+      this.totalExecError = 0
+      this.totalNoIndexUsed = 0
+      this.totalNoGoodIndexUsed = 0
+
+      const params = {}
+      if (payload.server) params.server = payload.server
+      if (payload.db) params.db = payload.db
+      if (payload.sp_name) params.sp_name = payload.sp_name
+      if (payload.start_time) params.start_time = payload.start_time
+      if (payload.end_time) params.end_time = payload.end_time
+
+      try {
+        const res = await axios.get('http://10.12.99.21:3000/sp_info', { params })
+        console.log('API response:', res.data)
+        this.data = res.data
+
+        console.log('資料筆數：', this.data?.length)
+        console.log('第一筆：', this.data?.[0])
+
+        this.data.forEach(item => {
+          this.totalExecCount += item.Exec_Count || 0
+          this.totalExecSecond += parseFloat(item.Exec_Second) || 0
+          this.totalExecError += item.Exec_Error || 0
+          this.totalNoIndexUsed += item.Exec_NO_INDEX_USED || 0
+          this.totalNoGoodIndexUsed += item.Exec_NO_GOOD_INDEX_USED || 0
+        })
+      } catch (e) {
+        this.error = 'API request failed, please try again later.'
+      } finally {
+        this.loading = false
+      }
+    },
+    RoundToDecimal(num, DecimalPlace) {
+      const factor = Math.pow(10, DecimalPlace)
+      return Math.round(num * factor) / factor
+    }
+  },
+  mounted() {
+    // pre load
+    this.fetchData()
+  },
+}
+</script>
+
+<style scoped>
+.container {
+  max-width: 1500px;
+  margin: 30px auto;
+  font-family: "Noto Sans TC", sans-serif;
+  padding: 20px;
+  background: #fafafa;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #ccc;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  table-layout: fixed;
+}
+.result-table td {
+  border: 1.5px solid #999;
+  padding: 8px;
+  text-align: center;
+}
+.result-table th {
+  border: 1.5px solid #999;
+  background-color: #007acc;
+  color: white;
+}
+.result-table th:nth-child(1), /* Server */
+.result-table td:nth-child(1) {
+  width: 120px;
+}
+
+.result-table th:nth-child(2), /* DB */
+.result-table td:nth-child(2) {
+  width: 100px;
+}
+
+.result-table th:nth-child(4), /* Exec_Count */
+.result-table td:nth-child(4) {
+  width: 100px;
+}
+
+.result-table th:nth-child(5), /* Exec_Second */
+.result-table td:nth-child(5) {
+  width: 110px;
+}
+
+.result-table th:nth-child(6), /* Exec_Error */
+.result-table td:nth-child(6) {
+  width: 100px;
+}
+
+.total-summary {
+  margin-top: 20px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.total-summary div {
+  margin: 5px 0;
+}
+
+</style>
+
