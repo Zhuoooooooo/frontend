@@ -65,8 +65,9 @@ export default {
   display: flex;
   flex-direction: column;
   font-size: 20px;
-  font-weight: bold;
-  text-align: center;
+  font-weight: 600;
+  text-align: left;
+  margin-left: 50px;
   gap: 7px;
 }
 .time-inputs {

@@ -183,7 +183,8 @@ export default {
   margin-bottom: 6px;
   font-size: 18px;
   font-weight: 600;
-  text-align: center;
+  text-align: left;
+  margin-left: 9px;
 }
 
 /* 外框 */

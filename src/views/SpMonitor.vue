@@ -2,14 +2,24 @@
   <div id="sp-monitor">
     <h1>SP Monitor System</h1>
 
-    <div class="filters">
-      <ServerFilter v-model="form.server" :options="serverList" label="Server" @change="onServerChange" />
-      <DBFilter v-model="form.db" :options="dbList" label="DB" @change="onDBChange" @remote-query="onDBQuery" />
-      <SpFilter v-model="form.sp_name" :options="spList" label="SP Name" @remote-query="onSPQuery"/>
-      <div class="time-filter">
-        <TimeFilter v-model="form.time_range" label="Time Interval" />
+    <div class="filter-card">
+      <div class="filters-container">
+        <div class="filter-row top-row">
+          <ServerFilter v-model="form.server" :options="serverList" label="Server" @change="onServerChange" />
+          <DBFilter v-model="form.db" :options="dbList" label="DB" @change="onDBChange" @remote-query="onDBQuery" />
+          <SpFilter v-model="form.sp_name" :options="spList" label="SP Name" @remote-query="onSPQuery"/>
+        </div>
+
+
+        <div class="filter-row bottom-row">
+          <div class="time-filter-wrapper">
+            <TimeFilter v-model="form.time_range" label="Time Interval" />
+          </div>
+          <div class="button-wrapper">
+            <button @click="resetPage(); fetchData()" class="query-button">查詢</button>
+          </div>
+        </div>
       </div>
-      <button @click="resetPage(); fetchData()" class="query-button">查詢</button>
     </div>
 
     <div v-if="loading">Loading...</div>
@@ -47,7 +57,7 @@
         <tr>
            <td colspan="3"><strong>Total</strong></td>
            <td><strong>{{ totalExecCount }}</strong></td>
-           <td><strong>{{ RoundToDecimal(totalExecSecond, 5) }}</strong></td>
+           <td><strong>{{ overallAvgSecond }}</strong></td>
            <td><strong>{{ totalExecError }}</strong></td>
            <td><strong>{{ totalNoIndexUsed }}</strong></td>
            <td><strong>{{ totalNoGoodIndexUsed }}</strong></td>
@@ -85,7 +95,7 @@ export default {
   components: { ServerFilter, DBFilter, SpFilter, TimeFilter },
   data() {
     return {
-	    form: { server: [], db: [], sp_name: [], time_range: { start_time: '', end_time: ''}, db_query: '', sp_query: '' },
+            form: { server: [], db: [], sp_name: [], time_range: { start_time: '', end_time: ''}, db_query: '', sp_query: '' },
       serverList: [],
       dbList: [],
       spList: [],
@@ -94,7 +104,7 @@ export default {
       error: '',
       sort: {
           field: 'CreateTime',
-	  direction: 'DESC'
+          direction: 'DESC'
       },
       totalExecCount: 0,
       totalExecSecond: 0,
@@ -112,6 +122,13 @@ export default {
   mounted() {
     this.fetchServerList()
   },
+  computed: {
+        overallAvgSecond() {
+          if (this.totalExecCount === 0) return 0;
+          const avg = this.totalExecSecond / this.totalExecCount;
+          return this.RoundToDecimal(avg, 5);
+        }
+    },
   methods: {
     async fetchServerList() {
       const res = await axios.get('/api/server_list')
@@ -152,12 +169,12 @@ export default {
       this.resetPage()
     },
     onDBQuery(query) {
-	this.form.db_query = query;
-	this.fetchDBList()
+        this.form.db_query = query;
+        this.fetchDBList()
     },
     onSPQuery(query) {
-	this.form.sp_query = query;
-	this.fetchSPList()
+        this.form.sp_query = query;
+        this.fetchSPList()
     },
     resetPage() {
         this.pagination.current_page = 1
@@ -169,23 +186,23 @@ export default {
         }
     },
     sortBy(field) {
-	if (this.sort.field === field) {
-	    this.sort.direction = this.sort.direction === 'ASC' ? 'DESC' : 'ASC'
+        if (this.sort.field === field) {
+            this.sort.direction = this.sort.direction === 'ASC' ? 'DESC' : 'ASC'
         } else {
-	    this.sort.field = field
+            this.sort.field = field
             this.sort.direction = 'DESC'
-	}
-	this.resetPage()
-	this.fetchData()
+        }
+        this.resetPage()
+        this.fetchData()
     },
     getSortIcon(field) {
-	const icon = ' ▼';
-	
+        const icon = ' ▼';
+
         if (this.sort.field === field) {
             return this.sort.direction === 'ASC' ? ' ▲' : ' ▼';
-	} else {
-	    return icon;
-	}
+        } else {
+            return icon;
+        }
     },
     onTimeChange(newTimeRange) {
         this.resetPage()
@@ -193,28 +210,28 @@ export default {
     async fetchData() {
       this.loading = true
       this.error = ''
-      
+
       const params = {
         server: this.form.server?.map(s => s.value).join(',') || '',
         db: this.form.db?.map(s => s.value).join(',') || '',
         sp_name: this.form.sp_name?.map(s => s.value).join(',') || '',
         start_time: this.form.time_range.start_time,
         end_time: this.form.time_range.end_time,
-	page: this.pagination.current_page,
-	per_page: this.pagination.per_page,
-	sort_by: this.sort.field,
-	sort_dir: this.sort.direction
+        page: this.pagination.current_page,
+        per_page: this.pagination.per_page,
+        sort_by: this.sort.field,
+        sort_dir: this.sort.direction
       }
 
       try {
           const res = await axios.get('api/sp_info', { params })
           this.data = res.data.data
-	  this.pagination = { ...this.pagination, ...res.data.pagination }
+          this.pagination = { ...this.pagination, ...res.data.pagination }
       } catch (e) {
-	  this.error = 'Failed: '+ e.message
-	  this.data = []
+          this.error = 'Failed: '+ e.message
+          this.data = []
       } finally {
-	  this.loading = false
+          this.loading = false
       }
 
       // reset totoal data
@@ -223,10 +240,13 @@ export default {
       this.totalExecError = 0
       this.totalNoIndexUsed = 0
       this.totalNoGoodIndexUsed = 0
-    
+
       this.data.forEach(item => {
-          this.totalExecCount += item.Exec_Count || 0
-          this.totalExecSecond += parseFloat(item.Exec_Second) || 0
+          const count = item.Exec_Count || 0;
+          const avgSec = parseFloat(item.Exec_Second) || 0;
+
+          this.totalExecCount += count;
+          this.totalExecSecond += (count * avgSec);
           this.totalExecError += item.Exec_Error || 0
           this.totalNoIndexUsed += item.Exec_NO_INDEX_USED || 0
           this.totalNoGoodIndexUsed += item.Exec_NO_GOOD_INDEX_USED || 0
@@ -251,20 +271,52 @@ export default {
 h1 {
   color: #333;
   font-size: 45px;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
   display: flex;
   justify-content: center; /* Horizontally centers */
   align-items: center; /* Vertically centers */
   text-align: center;
 }
 
-.filters {
-  display: grid;
-  flex-direction: row;
-  grid-template-columns: repeat(4, 1fr);
-  flex-basis: 100%;
-  gap: 30px;
-  margin-bottom: 20px;
+.filter-card {
+  background-color: #ffffff;
+  border: 1px solid #e0e6ed;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 4px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* 輕微陰影提升深度感 */
+}
+
+.filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.top-row > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.bottom-row {
+  justify-content: center;
+  border-top: 0.3px solid #f0f3f7; /* 加一條細線分隔，更有層次 */
+  padding-top: 18px;
+}
+
+.time-filter-wrapper {
+  flex: 0 1 auto; /* 保持內容原有的寬度 */
+}
+
+.button-wrapper {
+  margin-left: 35px; /* 將按鈕推至最右側 */
 }
 
 .time-filter {
@@ -273,31 +325,22 @@ h1 {
   gap: 30px;
   grid-column: span 3;
   display: flex;
-  align-items: center;
-  
 }
 
-.filters button {
-  grid-column: 4 / 4;
-  padding: 3px 4px;
+.query-button {
+  padding: 0 32px;
+  height: 38px; /* 配合輸入框高度 */
   background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
-  max-width: 100px; /* 限制最大寬度，避免過長 */
-  width: auto; /* 自適應內容寬度 */
-  transition: background-color 0.3s;
-}
-
-.filters button:hover {
-  background-color: #0056b3;
-}
-
-.filters button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background-color 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 table {
@@ -355,7 +398,7 @@ table th {
 
 table th.sortable {
     cursor: pointer;
-    user-select: none; 
+    user-select: none;
     white-space: nowrap;
 }
 
