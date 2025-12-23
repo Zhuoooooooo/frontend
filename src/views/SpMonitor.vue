@@ -5,6 +5,7 @@
     <div class="filter-card">
       <div class="filters-container">
         <div class="filter-row top-row">
+	  <SiteFilter v-model="form.site" :options="siteList" label="Site" @change="onSiteChange" />
           <ServerFilter v-model="form.server" :options="serverList" label="Server" @change="onServerChange" />
           <DBFilter v-model="form.db" :options="dbList" label="DB" @change="onDBChange" @remote-query="onDBQuery" />
           <SpFilter v-model="form.sp_name" :options="spList" label="SP Name" @remote-query="onSPQuery"/>
@@ -29,6 +30,7 @@
     <table v-if="data.length">
       <thead>
         <tr>
+          <th @click="sortBy('Site')" class="sortable">Site {{ getSortIcon('Site') }}</th>
           <th @click="sortBy('Server')" class="sortable">Server {{ getSortIcon('Server') }}</th>
           <th @click="sortBy('DB')" class="sortable">DB {{ getSortIcon('DB') }}</th>
           <th @click="sortBy('SP_Name')" class="sortable">SP Name {{ getSortIcon('SP_Name') }}</th>
@@ -42,6 +44,7 @@
       </thead>
       <tbody>
         <tr v-for="(item,i) in data" :key="i">
+	  <td :title="item.Site">{{ item.Site }}</td>
           <td :title="item.Server">{{ item.Server }}</td>
           <td :title="item.DB">{{ item.DB }}</td>
           <td :title="item.SP_Name">{{ item.SP_Name }}</td>
@@ -85,6 +88,7 @@
 
 <script>
 import axios from 'axios'
+import SiteFilter from '../components/SiteFilter.vue'
 import ServerFilter from '../components/ServerFilter.vue'
 import DBFilter from '../components/DBFilter.vue'
 import SpFilter from '../components/SpFilter.vue'
@@ -92,10 +96,11 @@ import TimeFilter from '../components/TimeFilter.vue'
 
 export default {
   name: 'SpMonitor',
-  components: { ServerFilter, DBFilter, SpFilter, TimeFilter },
+  components: { SiteFilter, ServerFilter, DBFilter, SpFilter, TimeFilter },
   data() {
     return {
-            form: { server: [], db: [], sp_name: [], time_range: { start_time: '', end_time: ''}, db_query: '', sp_query: '' },
+            form: { site: [], server: [], db: [], sp_name: [], time_range: { start_time: '', end_time: ''}, db_query: '', sp_query: '' },
+      siteList: [],
       serverList: [],
       dbList: [],
       spList: [],
@@ -120,7 +125,8 @@ export default {
     }
   },
   mounted() {
-    this.fetchServerList()
+    this.fetchServerList();
+    this.fetchSiteList()
   },
   computed: {
         overallAvgSecond() {
@@ -130,6 +136,10 @@ export default {
         }
     },
   methods: {
+    async fetchSiteList() {
+      const res = await axios.get('/api/site_list')
+      this.siteList = res.data.map(s => ({ label: s, value: s }))
+    },
     async fetchServerList() {
       const res = await axios.get('/api/server_list')
       this.serverList = res.data.map(s => ({ label: s, value: s }))
@@ -153,6 +163,16 @@ export default {
 
       const res = await axios.get('/api/sp_list', { params })
       this.spList = res.data.map(sp => ({ label: sp, value: sp }))
+    },
+    onSiteChange() {
+    this.form.server = []
+    this.serverList = []
+    this.form.db = []
+    this.dbList = []
+    this.form.sp_name = []
+    this.spList = []
+    this.fetchServerList() 
+    this.resetPage()
     },
     onServerChange() {
       this.form.db = []
@@ -212,6 +232,7 @@ export default {
       this.error = ''
 
       const params = {
+	site: this.form.site?.map(s => s.value).join(',') || '',
         server: this.form.server?.map(s => s.value).join(',') || '',
         db: this.form.db?.map(s => s.value).join(',') || '',
         sp_name: this.form.sp_name?.map(s => s.value).join(',') || '',
@@ -354,31 +375,34 @@ table {
 }
 
 table thead th:nth-child(1) {
-  width: 6%; /* Server */
+  width: 4%; /* Site */
 }
 table thead th:nth-child(2) {
-  width: 5%; /* DB */
+  width: 5%; /* Server */
 }
 table thead th:nth-child(3) {
-  width: 23%; /* SP Name */
+  width: 5%; /* DB */
 }
 table thead th:nth-child(4) {
-  width: 8%; /* Exec_Count */
+  width: 18%; /* SP Name */
 }
 table thead th:nth-child(5) {
-  width: 12%; /* Exec_Second(Avg) */
+  width: 8%; /* Exec_Count */
 }
 table thead th:nth-child(6) {
-  width: 8%; /* Exec_Error */
+  width: 12%; /* Exec_Second(Avg) */
 }
 table thead th:nth-child(7) {
-  width: 10%; /* NO_INDEX_USED */
+  width: 6.5%; /* Exec_Error */
 }
 table thead th:nth-child(8) {
-  width: 10%; /* NO_GOOD_INDEX_USED */
+  width: 10.5%; /* NO_INDEX_USED */
 }
 table thead th:nth-child(9) {
-  width: 17%; /* CreateTime */
+  width: 13%; /* NO_GOOD_INDEX_USED */
+}
+table thead th:nth-child(10) {
+  width: 15%; /* CreateTime */
 }
 
 table th, table td {

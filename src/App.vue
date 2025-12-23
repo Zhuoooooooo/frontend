@@ -10,9 +10,6 @@
         <router-link to="/tablesize" class="menu-item" active-class="active">
           <span class="icon">📁</span>
           <span :class="{ 'hidden-text': isCollapsed }">Table Size</span></router-link>
-	<router-link to="/connection" class="menu-item" active-class="active">
-	  <span class="icon">🌐</span>
-	  <span :class="{ 'hidden-text': isCollapsed }">Connection</span></router-link>
       </nav>
     </aside>
 
@@ -55,7 +52,7 @@ export default {
 }
 
 .sidebar {
-  width: 200px;
+  width: 125px;
   background: #2c3e50; 
   color: white;
   transition: width 0.3s;
