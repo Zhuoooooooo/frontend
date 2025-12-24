@@ -53,12 +53,13 @@
           <td :title="item.Exec_Error">{{ item.Exec_Error }}</td>
           <td :title="item.Exec_NO_INDEX_USED">{{ item.Exec_NO_INDEX_USED }}</td>
           <td :title="item.Exec_NO_GOOD_INDEX_USED">{{ item.Exec_NO_GOOD_INDEX_USED }}</td>
-          <td :title="item.CreateTime">{{ item.CreateTime }}</td>
+	  <!--td :title="item.CreateTime">{{ item.CreateTime }}</td-->
+	  <td :title="formatDateTime(item.CreateTime)">{{ formatDateTime(item.CreateTime) }}</td>
         </tr>
       </tbody>
       <tfoot>
         <tr>
-           <td colspan="3"><strong>Total</strong></td>
+           <td colspan="4"><strong>Total</strong></td>
            <td><strong>{{ totalExecCount }}</strong></td>
            <td><strong>{{ overallAvgSecond }}</strong></td>
            <td><strong>{{ totalExecError }}</strong></td>
@@ -152,6 +153,23 @@ export default {
 
       const res = await axios.get('/api/db_list', { params })
       this.dbList = res.data.map(d => ({ label: d, value: d }))
+    },
+    formatDateTime(dateStr) {
+    if (!dateStr) return '--';
+    
+    const date = new Date(dateStr);
+    
+    // 如果日期無效，則回傳原始字串
+    if (isNaN(date.getTime())) return dateStr;
+
+    const Y = date.getFullYear();
+    const M = String(date.getMonth() + 1).padStart(2, '0');
+    const D = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const m = String(date.getMinutes()).padStart(2, '0');
+    const s = String(date.getSeconds()).padStart(2, '0');
+
+    return `${Y}-${M}-${D} ${h}:${m}:${s}`;
     },
     async fetchSPList() {
       const server = this.form.server?.map(s => s.value).join(',') || ''
@@ -384,25 +402,25 @@ table thead th:nth-child(3) {
   width: 5%; /* DB */
 }
 table thead th:nth-child(4) {
-  width: 18%; /* SP Name */
+  width: 20%; /* SP Name */
 }
 table thead th:nth-child(5) {
   width: 8%; /* Exec_Count */
 }
 table thead th:nth-child(6) {
-  width: 12%; /* Exec_Second(Avg) */
+  width: 11.5%; /* Exec_Second(Avg) */
 }
 table thead th:nth-child(7) {
-  width: 6.5%; /* Exec_Error */
+  width: 7.5%; /* Exec_Error */
 }
 table thead th:nth-child(8) {
   width: 10.5%; /* NO_INDEX_USED */
 }
 table thead th:nth-child(9) {
-  width: 13%; /* NO_GOOD_INDEX_USED */
+  width: 14%; /* NO_GOOD_INDEX_USED */
 }
 table thead th:nth-child(10) {
-  width: 15%; /* CreateTime */
+  width: 11.5%; /* CreateTime */
 }
 
 table th, table td {
