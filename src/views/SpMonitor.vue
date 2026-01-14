@@ -58,7 +58,7 @@
       </tbody>
       <tfoot>
         <tr>
-           <td colspan="3"><strong>Total</strong></td>
+           <td colspan="4"><strong>Total</strong></td>
            <td><strong>{{ totalExecCount }}</strong></td>
            <td><strong>{{ overallAvgSecond }}</strong></td>
            <td><strong>{{ totalExecError }}</strong></td>
@@ -100,7 +100,10 @@ export default {
   data() {
     return {
             form: { site: [], server: [], db: [], sp_name: [], time_range: { start_time: '', end_time: ''}, db_query: '', sp_query: '' },
-      siteList: [],
+      siteList: [
+        { label: 'OT', value: 'OT'},
+	{ label: 'NV', value: 'NV'}
+      ],
       serverList: [],
       dbList: [],
       spList: [],
@@ -126,7 +129,7 @@ export default {
   },
   mounted() {
     this.fetchServerList();
-    this.fetchSiteList()
+    //this.fetchSiteList()
   },
   computed: {
         overallAvgSecond() {

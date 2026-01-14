@@ -13,9 +13,9 @@ export default defineConfig({
   server: {
     host: true,
     port: 8080,
-    allowedHosts: [
-        'monitorwebuat.uat12csd.com',
-    ],
+   // allowedHosts: [
+   //     'monitorwebuat.uat12csd.com',
+   // ],
     proxy: {
       '/api': {
 	target: 'http://127.0.0.1:3000',

@@ -29,7 +29,7 @@ export default {
   data() {
     const now = new Date();
     const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 3);
+    sevenDaysAgo.setDate(now.getDate() - 1);
     const defaultEndTime = formatDateTimeLocal(now);
     const defaultStartTime = formatDateTimeLocal(sevenDaysAgo);
 
