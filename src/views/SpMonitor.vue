@@ -8,7 +8,22 @@
 	  <SiteFilter v-model="form.site" :options="siteList" label="Site" @change="onSiteChange" />
           <ServerFilter v-model="form.server" :options="serverList" label="Server" @change="onServerChange" />
           <DBFilter v-model="form.db" :options="dbList" label="DB" @change="onDBChange" @remote-query="onDBQuery" />
-          <SpFilter v-model="form.sp_name" :options="spList" label="SP Name" @remote-query="onSPQuery"/>
+          <!--SpFilter v-model="form.sp_name" :options="spList" label="SP Name" @remote-query="onSPQuery"/-->
+
+	  <div class="filter-box">
+            <label class="filter-label">SP Name</label>
+            <input
+              type="text"
+              v-model="form.sp_name"
+              list="sp-hints"
+              @input="onSPInput"
+              placeholder="Input SP Name (Please use comma if multiselect)"
+              class="text-input-field"
+            />
+            <datalist id="sp-hints">
+              <option v-for="sp in spList" :key="sp" :value="sp"></option>
+            </datalist>
+          </div>
         </div>
 
 
@@ -39,7 +54,7 @@
           <th @click="sortBy('Exec_Error')" class="sortable">Exec_Error {{ getSortIcon('Exec_Error') }}</th>
           <th @click="sortBy('Exec_NO_INDEX_USED')" class="sortable">NO_INDEX_USED {{ getSortIcon('Exec_NO_INDEX_USED') }}</th>
           <th @click="sortBy('Exec_NO_GOOD_INDEX_USED')" class="sortable">NO_GOOD_INDEX_USED {{ getSortIcon('Exec_NO_GOOD_INDEX_USED') }}</th>
-          <th @click="sortBy('CreateTime')" class="sortable">CreateTime (UTC+0) {{ getSortIcon('CreateTime') }}</th>
+          <th @click="sortBy('CreateTime')" class="sortable">CreateTime (UTC+8) {{ getSortIcon('CreateTime') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -69,6 +84,7 @@
         </tr>
       </tfoot>
     </table>
+
     <div v-if="pagination.last_page > 1" class="pagination-controls">
         <button @click="changePage(pagination.current_page - 1)"
                 :disabled="pagination.current_page === 1">
@@ -100,14 +116,24 @@ export default {
   components: { SiteFilter, ServerFilter, DBFilter, SpFilter, TimeFilter },
   data() {
     return {
-            form: { site: [], server: [], db: [], sp_name: [], time_range: { start_time: '', end_time: ''}, db_query: '', sp_query: '' },
+            form: { site: [], server: [], db: [], sp_name: '', time_range: { start_time: '', end_time: ''}, db_query: '', sp_query: '' },
       siteList: [
         { label: 'OT', value: 'OT'},
 	{ label: 'NV', value: 'NV'}
       ],
-      serverList: [],
-      dbList: [],
+      serverList: [
+        { label: 'Main', value: 'Main'},
+        { label: 'Report1', value: 'Report1'},
+        { label: 'Report2', value: 'Report2'}
+      ],
+      dbList: [
+        { label: 'Siebog', value: 'Siebog'},
+        { label: 'BetDetail', value: 'BetDetail'},
+        { label: 'Monitor', value: 'Monitor'},
+        { label: 'Iptable', value: 'Iptable'}
+      ],
       spList: [],
+      spTimer: null,
       data: [],
       loading: false,
       error: '',
@@ -128,10 +154,6 @@ export default {
       },
     }
   },
-  mounted() {
-    this.fetchServerList();
-    //this.fetchSiteList()
-  },
   computed: {
         overallAvgSecond() {
           if (this.totalExecCount === 0) return 0;
@@ -140,22 +162,28 @@ export default {
         }
     },
   methods: {
-    async fetchSiteList() {
-      const res = await axios.get('/api/site_list')
-      this.siteList = res.data.map(s => ({ label: s, value: s }))
+    OnSPInput() {
+      clearTimeout(this.spTimer);
+      if (!this.form.sp_name) {
+        this.spList = [];
+	return;
+      }
+      this.spTimer = setTimeout(() => {
+        this.fetchSPSuggestions();
+      }, 300);
     },
-    async fetchServerList() {
-      const res = await axios.get('/api/server_list')
-      this.serverList = res.data.map(s => ({ label: s, value: s }))
-    },
-    async fetchDBList() {
-      const server = this.form.server?.map(s => s.value).join(',') || ''
-      const params = {}
-      if (server) params.server = server
-      if (this.form.db_query) params.q = this.form.db_query
-
-      const res = await axios.get('/api/db_list', { params })
-      this.dbList = res.data.map(d => ({ label: d, value: d }))
+    async fetchSPSuggestions() {
+      const params = {
+	server: this.form.server?.map(s => s.value).join(',') || '',
+	db: this.form.db?.map(d => d.value).join(',') || '',
+	q: this.form.sp_name
+      };
+      try {
+	const res = await axios.get('/api/sp_list', { params });
+        this.spList = res.data; 
+      } catch (e) {
+        console.error("Fetch SP suggestions failed", e);
+      }
     },
     formatDateTime(dateStr) {
     if (!dateStr) return '--';
@@ -174,48 +202,14 @@ export default {
 
     return `${Y}-${M}-${D} ${h}:${m}:${s}`;
     },
-    async fetchSPList() {
-      const server = this.form.server?.map(s => s.value).join(',') || ''
-      const db = this.form.db?.map(d => d.value).join(',') || ''
-      const params = {}
-      if (server) params.server = server
-      if (db) params.db = db
-      if (this.form.sp_query) params.q = this.form.sp_query
-
-      const res = await axios.get('/api/sp_list', { params })
-      this.spList = res.data.map(sp => ({ label: sp, value: sp }))
-    },
     onSiteChange() {
-    this.form.server = []
-    this.serverList = []
-    this.form.db = []
-    this.dbList = []
-    this.form.sp_name = []
-    this.spList = []
-    this.fetchServerList() 
     this.resetPage()
     },
     onServerChange() {
-      this.form.db = []
-      this.dbList = []
-      this.form.sp_name = []
-      this.spList = []
-      this.fetchDBList()
       this.resetPage()
     },
     onDBChange() {
-      this.form.sp_name = []
-      this.spList = []
-      this.fetchSPList()
       this.resetPage()
-    },
-    onDBQuery(query) {
-        this.form.db_query = query;
-        this.fetchDBList()
-    },
-    onSPQuery(query) {
-        this.form.sp_query = query;
-        this.fetchSPList()
     },
     resetPage() {
         this.pagination.current_page = 1
@@ -233,8 +227,8 @@ export default {
             this.sort.field = field
             this.sort.direction = 'DESC'
         }
-        this.resetPage()
-        this.fetchData()
+        this.resetPage();
+        this.fetchData();
     },
     getSortIcon(field) {
         const icon = ' ▼';
@@ -249,40 +243,43 @@ export default {
         this.resetPage()
     },
     async fetchData() {
-      this.loading = true
-      this.error = ''
+      this.loading = true;
+      this.error = '';
 
       const params = {
 	site: this.form.site?.map(s => s.value).join(',') || '',
         server: this.form.server?.map(s => s.value).join(',') || '',
         db: this.form.db?.map(s => s.value).join(',') || '',
-        sp_name: this.form.sp_name?.map(s => s.value).join(',') || '',
-        start_time: this.form.time_range.start_time,
-        end_time: this.form.time_range.end_time,
+        sp_name: this.form.sp_name,
+        start_time: this.form.time_range.start_time 
+            ? new Date(this.form.time_range.start_time).toISOString().replace('T', ' ').substring(0, 19) 
+            : '',
+        end_time: this.form.time_range.end_time
+	    ? new Date(this.form.time_range.end_time).toISOString().replace('T', ' ').substring(0, 19) 
+            : '',
         page: this.pagination.current_page,
         per_page: this.pagination.per_page,
         sort_by: this.sort.field,
         sort_dir: this.sort.direction
-      }
+      };
 
       try {
-          const res = await axios.get('api/sp_info', { params })
-          this.data = res.data.data
-          this.pagination = { ...this.pagination, ...res.data.pagination }
+          const res = await axios.get('api/sp_info', { params });
+          this.data = res.data.data;
+          this.pagination = { ...this.pagination, ...res.data.pagination };
       } catch (e) {
-          this.error = 'Failed: '+ e.message
-          this.data = []
+          this.error = 'Failed: '+ e.message;
+          this.data = [];
       } finally {
-          this.loading = false
+          this.loading = false;
       }
-
       // reset totoal data
       this.totalExecCount = 0
       this.totalExecSecond = 0
       this.totalExecError = 0
       this.totalNoIndexUsed = 0
       this.totalNoGoodIndexUsed = 0
-
+ 
       this.data.forEach(item => {
           const count = item.Exec_Count || 0;
           const avgSec = parseFloat(item.Exec_Second) || 0;
@@ -342,6 +339,22 @@ h1 {
   width: 100%;
 }
 
+.text-input-field {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  height: 40px; /* 統一高度 */
+  background-color: white;
+}
+
+.text-input-field:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 4px rgba(0,123,255,0.2);
+}
 .top-row > * {
   flex: 1;
   min-width: 0;
