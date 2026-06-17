@@ -12,7 +12,7 @@ import ServerFilter from '../components/ServerFilter.vue'
 import DBFilter from '../components/DBFilter.vue'
 
 export default {
-  name: 's3_bucket'
+  name: 'S3Bucket'
 }
 </script>
 

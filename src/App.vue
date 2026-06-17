@@ -39,9 +39,7 @@ export default {
 <style scoped>
 
 .container {
-  /*display: flex; */
   height: 100vh;
-  /*width: 200%; */
 }
 
 .app-layout { 
