@@ -7,8 +7,11 @@
         <router-link to="/sp-monitor" class="menu-item" active-class="active">
           <span class="icon">🕵️</span>
 	  <span :class="{ 'hidden-text': isCollapsed }">SP Monitor</span></router-link>
-        <router-link to="/tablesize" class="menu-item" active-class="active">
-          <span class="icon">📁</span>
+        <router-link to="/s3_bucket" class="menu-item" active-class="active">
+          <span class="icon">📁 </span>
+          <span :class="{ 'hidden-text': isCollapsed }">S3 Bucket</span></router-link>
+	<router-link to="/tablesize" class="menu-item" active-class="active">
+          <span class="icon">📄 </span>
           <span :class="{ 'hidden-text': isCollapsed }">Table Size</span></router-link>
       </nav>
     </aside>

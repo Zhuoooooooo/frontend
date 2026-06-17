@@ -32,7 +32,7 @@
             <TimeFilter v-model="form.time_range" label="Time Interval" />
           </div>
           <div class="button-wrapper">
-            <button @click="resetPage(); fetchData()" class="query-button">查詢</button>
+            <button @click="resetCursor(); fetchData()" class="query-button">查詢</button>
           </div>
         </div>
       </div>
@@ -85,20 +85,10 @@
       </tfoot>
     </table>
 
-    <div v-if="pagination.last_page > 1" class="pagination-controls">
-        <button @click="changePage(pagination.current_page - 1)"
-                :disabled="pagination.current_page === 1">
-            上一頁
-        </button>
-
-        <span>
-            第 {{ pagination.current_page }} 頁 / 共 {{ pagination.last_page }} 頁 (總筆數: {{ pagination.total }})
-        </span>
-
-        <button @click="changePage(pagination.current_page + 1)"
-                :disabled="pagination.current_page === pagination.last_page">
-            下一頁
-        </button>
+    <div v-if="data.length" class="pagination-controls">
+	    <button @click="goPrev" :disabled="cursorHistory.length === 0">上一頁</button>
+	    <span>第 {{ cursorHistory.length + 1 }} 頁</span>
+	    <button @click="goNext" :disabled="!hasNext">下一頁</button>
     </div>
   </div>
 </template>
@@ -146,12 +136,10 @@ export default {
       totalExecError: 0,
       totalNoIndexUsed: 0,
       totalNoGoodIndexUsed: 0,
-      pagination: {
-          current_page: 1,
-          per_page: 30, // 應與後端預設值一致
-          total: 0,
-          last_page: 1
-      },
+      currentCursor: null, //第一頁
+      cursorHistory: [], // 紀錄上一頁的 cursor
+      hasNext: false,
+      nextCursor: null,
     }
   },
   computed: {
@@ -202,24 +190,25 @@ export default {
 
     return `${Y}-${M}-${D} ${h}:${m}:${s}`;
     },
-    onSiteChange() {
-    this.resetPage()
+    onSiteChange()   { this.resetCursor() },
+    onServerChange() { this.resetCursor() },
+    onDBChange()     { this.resetCursor() },
+    resetCursor() {
+        this.currentCursor = null
+	this.cursorHistory = []
+	this.hasNext = false
+	this.nextCursor = null
     },
-    onServerChange() {
-      this.resetPage()
+    goNext() {
+        this.cursorHistory.push(this.currentCursor)
+	this.currentCursor = this.nextCursor
+	this.fetchData()
     },
-    onDBChange() {
-      this.resetPage()
+    goPrev() {
+        this.currentCursor = this.cursorHistory.pop()
+	this.fetchData()
     },
-    resetPage() {
-        this.pagination.current_page = 1
-    },
-    changePage(page) {
-        if (page >= 1 && page <= this.pagination.last_page) {
-            this.pagination.current_page = page
-            this.fetchData()
-        }
-    },
+
     sortBy(field) {
         if (this.sort.field === field) {
             this.sort.direction = this.sort.direction === 'ASC' ? 'DESC' : 'ASC'
@@ -227,7 +216,7 @@ export default {
             this.sort.field = field
             this.sort.direction = 'DESC'
         }
-        this.resetPage();
+        this.resetCursor();
         this.fetchData();
     },
     getSortIcon(field) {
@@ -257,8 +246,9 @@ export default {
         end_time: this.form.time_range.end_time
 	    ? new Date(this.form.time_range.end_time).toISOString().replace('T', ' ').substring(0, 19) 
             : '',
-        page: this.pagination.current_page,
-        per_page: this.pagination.per_page,
+        cursor_value: this.currentCursor?.value || '',
+	cursor_sq:    this.currentCursor?.sq    || '',
+	per_page: 30,
         sort_by: this.sort.field,
         sort_dir: this.sort.direction
       };
@@ -266,7 +256,8 @@ export default {
       try {
           const res = await axios.get('api/sp_info', { params });
           this.data = res.data.data;
-          this.pagination = { ...this.pagination, ...res.data.pagination };
+	  this.hasNext  = res.data.has_next
+	  this.nextCursor = res.data.next_cursor
       } catch (e) {
           this.error = 'Failed: '+ e.message;
           this.data = [];

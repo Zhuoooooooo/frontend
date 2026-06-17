@@ -14,6 +14,11 @@ const router = createRouter({
       component: SpMonitor,
     },
     {
+      path: '/s3_bucket',
+      name: 's3_bucket',
+      component: () => import('../views/S3_Bucket.vue'),
+    },
+    {
       path: '/tablesize',
       name: 'tablesize',
       component: () => import('../views/TableSize.vue'),
